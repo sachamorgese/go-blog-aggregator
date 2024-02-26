@@ -116,7 +116,7 @@ func CreateFeed(cfg *config.ApiConfig) config.AuthedHandler {
 			return
 		}
 
-		server.RespondWithJSON(w, http.StatusCreated, feed)
+		server.RespondWithJSON(w, http.StatusCreated, feedFollow)
 	}
 }
 
