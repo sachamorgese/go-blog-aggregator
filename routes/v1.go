@@ -3,7 +3,7 @@ package routes
 import (
 	"BlogAggregator/config"
 	"BlogAggregator/internal/database"
-	"BlogAggregator/server"
+	"BlogAggregator/server-actions"
 	"database/sql"
 	"encoding/json"
 	"fmt"
@@ -24,11 +24,11 @@ func CheckHealth(w http.ResponseWriter, r *http.Request) {
 		Status: "ok",
 	}
 
-	server.RespondWithJSON(w, http.StatusOK, response)
+	server_actions.RespondWithJSON(w, http.StatusOK, response)
 }
 
 func SendError(w http.ResponseWriter, r *http.Request) {
-	server.RespondWithError(w, http.StatusInternalServerError, "Internal Server Error")
+	server_actions.RespondWithError(w, http.StatusInternalServerError, "Internal Server Error")
 }
 
 type UserBody struct {
@@ -42,7 +42,7 @@ func CreateUser(db *sql.DB) http.HandlerFunc {
 		err := decoder.Decode(&params)
 
 		if err != nil {
-			server.RespondWithError(w, http.StatusBadRequest, "Invalid request body")
+			server_actions.RespondWithError(w, http.StatusBadRequest, "Invalid request body")
 			return
 		}
 
@@ -56,16 +56,16 @@ func CreateUser(db *sql.DB) http.HandlerFunc {
 		})
 
 		if err != nil {
-			server.RespondWithError(w, http.StatusInternalServerError, "Error creating user")
+			server_actions.RespondWithError(w, http.StatusInternalServerError, "Error creating user")
 			return
 		}
 
-		server.RespondWithJSON(w, http.StatusCreated, user)
+		server_actions.RespondWithJSON(w, http.StatusCreated, user)
 	}
 }
 
 func GetUser(w http.ResponseWriter, r *http.Request, users database.User) {
-	server.RespondWithJSON(w, http.StatusOK, users)
+	server_actions.RespondWithJSON(w, http.StatusOK, users)
 }
 
 type FeedBody struct {
@@ -80,7 +80,7 @@ func CreateFeed(cfg *config.ApiConfig) config.AuthedHandler {
 		err := decoder.Decode(&params)
 
 		if err != nil {
-			server.RespondWithError(w, http.StatusBadRequest, "Invalid request body")
+			server_actions.RespondWithError(w, http.StatusBadRequest, "Invalid request body")
 			return
 		}
 
@@ -96,7 +96,7 @@ func CreateFeed(cfg *config.ApiConfig) config.AuthedHandler {
 
 		if err != nil {
 			fmt.Println(err.Error())
-			server.RespondWithError(w, http.StatusInternalServerError, "Error creating feed")
+			server_actions.RespondWithError(w, http.StatusInternalServerError, "Error creating feed")
 			return
 		}
 
@@ -112,12 +112,22 @@ func CreateFeed(cfg *config.ApiConfig) config.AuthedHandler {
 		})
 
 		if err != nil {
-			server.RespondWithError(w, http.StatusInternalServerError, "Error creating feed follow")
+			server_actions.RespondWithError(w, http.StatusInternalServerError, "Error creating feed follow")
 			return
 		}
 
-		server.RespondWithJSON(w, http.StatusCreated, feedFollow)
+		server_actions.RespondWithJSON(w, http.StatusCreated, feedFollow)
 	}
+}
+
+type FeedResponse struct {
+	ID            uuid.UUID `json:"id"`
+	CreatedAt     time.Time `json:"created_at"`
+	UpdatedAt     time.Time `json:"updated_at"`
+	Name          string    `json:"name"`
+	Url           string    `json:"url"`
+	UserID        uuid.UUID `json:"user_id"`
+	LastFetchedAt time.Time `json:"last_fetched_at"`
 }
 
 func getFeeds(cfg *config.ApiConfig) http.HandlerFunc {
@@ -126,11 +136,25 @@ func getFeeds(cfg *config.ApiConfig) http.HandlerFunc {
 		feeds, err := dbQueries.GetFeeds(r.Context())
 
 		if err != nil {
-			server.RespondWithError(w, http.StatusInternalServerError, "Error getting feeds")
+			server_actions.RespondWithError(w, http.StatusInternalServerError, "Error getting feeds")
 			return
 		}
 
-		server.RespondWithJSON(w, http.StatusOK, feeds)
+		new_feeds := make([]FeedResponse, len(feeds))
+
+		for i, feed := range feeds {
+			new_feeds[i] = FeedResponse{
+				ID:            feed.ID,
+				CreatedAt:     feed.CreatedAt,
+				UpdatedAt:     feed.UpdatedAt,
+				Name:          feed.Name,
+				Url:           feed.Url,
+				UserID:        feed.UserID,
+				LastFetchedAt: feed.LastFetchedAt.Time,
+			}
+		}
+
+		server_actions.RespondWithJSON(w, http.StatusOK, new_feeds)
 	}
 }
 
@@ -145,7 +169,7 @@ func CreateFeedFollow(cfg *config.ApiConfig) config.AuthedHandler {
 		err := decoder.Decode(&params)
 
 		if err != nil || params.FeedID == uuid.Nil {
-			server.RespondWithError(w, http.StatusBadRequest, "Invalid request body")
+			server_actions.RespondWithError(w, http.StatusBadRequest, "Invalid request body")
 			return
 		}
 
@@ -162,11 +186,11 @@ func CreateFeedFollow(cfg *config.ApiConfig) config.AuthedHandler {
 		})
 
 		if err != nil {
-			server.RespondWithError(w, http.StatusInternalServerError, "Error creating feed follow")
+			server_actions.RespondWithError(w, http.StatusInternalServerError, "Error creating feed follow")
 			return
 		}
 
-		server.RespondWithJSON(w, http.StatusCreated, feedFollow)
+		server_actions.RespondWithJSON(w, http.StatusCreated, feedFollow)
 	}
 }
 
@@ -177,7 +201,7 @@ func DeleteFeedFollow(cfg *config.ApiConfig) config.AuthedHandler {
 		err := decoder.Decode(&params)
 
 		if err != nil || params.FeedID == uuid.Nil {
-			server.RespondWithError(w, http.StatusBadRequest, "Invalid request body")
+			server_actions.RespondWithError(w, http.StatusBadRequest, "Invalid request body")
 			return
 		}
 
@@ -192,11 +216,11 @@ func DeleteFeedFollow(cfg *config.ApiConfig) config.AuthedHandler {
 		})
 
 		if err != nil {
-			server.RespondWithError(w, http.StatusInternalServerError, "Error deleting feed follow")
+			server_actions.RespondWithError(w, http.StatusInternalServerError, "Error deleting feed follow")
 			return
 		}
 
-		server.RespondWithJSON(w, http.StatusOK, nil)
+		server_actions.RespondWithJSON(w, http.StatusOK, nil)
 	}
 }
 
@@ -210,11 +234,32 @@ func GetAllFeedFollows(cfg *config.ApiConfig) config.AuthedHandler {
 		feedFollows, err := dbQueries.GetAllFeedFollowsForUser(r.Context(), nullUserId)
 
 		if err != nil {
-			server.RespondWithError(w, http.StatusInternalServerError, "Error getting feed follows")
+			server_actions.RespondWithError(w, http.StatusInternalServerError, "Error getting feed follows")
 			return
 		}
 
-		server.RespondWithJSON(w, http.StatusOK, feedFollows)
+		server_actions.RespondWithJSON(w, http.StatusOK, feedFollows)
+	}
+}
+
+func GetPosts(cfg *config.ApiConfig) config.AuthedHandler {
+	return func(w http.ResponseWriter, r *http.Request, user database.User) {
+
+		dbQueries := database.New(cfg.Db)
+
+		nullUserId := uuid.NullUUID{UUID: user.ID, Valid: true}
+
+		posts, err := dbQueries.GetPostsByUser(r.Context(), database.GetPostsByUserParams{
+			UserID: nullUserId,
+			Limit:  5,
+		})
+
+		if err != nil {
+			server_actions.RespondWithError(w, http.StatusInternalServerError, "Error getting feed follows")
+			return
+		}
+
+		server_actions.RespondWithJSON(w, http.StatusOK, posts)
 	}
 }
 
@@ -234,5 +279,6 @@ func V1Routes(db *sql.DB) *chi.Mux {
 	r.Get("/feed_follows", apiCfg.MiddlewareAuth(GetAllFeedFollows(apiCfg)))
 	r.Post("/feed_follows", apiCfg.MiddlewareAuth(CreateFeedFollow(apiCfg)))
 	r.Delete("/feed_follows", apiCfg.MiddlewareAuth(DeleteFeedFollow(apiCfg)))
+	r.Get("/posts", apiCfg.MiddlewareAuth(GetPosts(apiCfg)))
 	return r
 }

@@ -1,8 +1,8 @@
 -- +goose Up
 ALTER TABLE feeds
-    ADD COLUMN last_fetched_at VARCHAR(64) UNIQUE NOT NULL DEFAULT encode(sha256(random()::text::bytea), 'hex');
+    ADD COLUMN last_fetched_at TIMESTAMP UNIQUE;
 
 
 -- +goose Down
-ALTER TABLE users
-    DROP COLUMN api_key;
+ALTER TABLE feeds
+    DROP COLUMN last_fetched_at;

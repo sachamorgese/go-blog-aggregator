@@ -2,7 +2,7 @@ package config
 
 import (
 	"BlogAggregator/internal/database"
-	"BlogAggregator/server"
+	"BlogAggregator/server-actions"
 	"database/sql"
 	"fmt"
 	"github.com/go-chi/cors"
@@ -30,7 +30,7 @@ func (cfg *ApiConfig) MiddlewareAuth(handler AuthedHandler) http.HandlerFunc {
 
 			fmt.Println(err.Error())
 
-			server.RespondWithError(w, http.StatusUnauthorized, "Unauthorized")
+			server_actions.RespondWithError(w, http.StatusUnauthorized, "Unauthorized")
 			return
 		}
 
@@ -39,7 +39,7 @@ func (cfg *ApiConfig) MiddlewareAuth(handler AuthedHandler) http.HandlerFunc {
 		user, err := dbQueries.GetUserByApiKey(r.Context(), apiKey[7:])
 
 		if err != nil {
-			server.RespondWithError(w, http.StatusNotFound, "User not found")
+			server_actions.RespondWithError(w, http.StatusNotFound, "User not found")
 			return
 		}
 

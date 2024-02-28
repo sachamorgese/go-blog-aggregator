@@ -3,6 +3,7 @@ package main
 import (
 	"BlogAggregator/config"
 	"BlogAggregator/routes"
+	"BlogAggregator/server-actions"
 	"database/sql"
 	"fmt"
 	"github.com/go-chi/chi/v5"
@@ -49,10 +50,12 @@ func main() {
 	}
 
 	fmt.Println("Server is running on port " + port)
+
+	go server_actions.StartFetchWorker(db, 60, 10)
+
 	errServer := server.ListenAndServe()
 
 	if errServer != nil {
 		panic(errServer)
 	}
-
 }
